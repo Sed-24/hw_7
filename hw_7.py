@@ -1,5 +1,5 @@
 from collections import UserDict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from typing import Callable
 
 
@@ -26,16 +26,26 @@ class Phone(Field):
 
 
 class Birthday(Field):
-    format: str = '%d.%m.%Y'
 
-    def __init__(self, value: str):
+    def get_days_from_today(self, date):
+        data_editing = ''
+        for i in date:
+            if i in '1234567890':
+                data_editing += i
+            else:
+                data_editing += ''
         try:
-            self.value = datetime.strptime(value, self.format)
+            date_string = datetime.strptime(data_editing, '%d.%m.%Y').date()
+            today = datetime.today().date()
+            return (today - date_string).days
         except ValueError:
-            raise ValueError("Invalid date format. Use DD.MM.YYYY")
+            return 'Невірно введена дата'
+
+    def date_to_string(self, data):
+        return data.strftime('%d.%m.%Y')
 
     def __str__(self) -> str:
-        return self.value.strftime(self.format) if self.value else 'Not specified'
+        return self.date_to_string(date)
 
 
 class Record:
@@ -83,9 +93,6 @@ class AddressBook(UserDict):
     def delete(self, name):
         del self.data[name]
 
-    def date_to_string(self, date: datetime):
-        return date.strftime(Birthday.format)
-
     def find_next_weekday(self, one_date: datetime, weekday: int):
         result_day = weekday - one_date.weekday()
 
@@ -94,72 +101,74 @@ class AddressBook(UserDict):
 
         return one_date + timedelta(result_day)
 
-    def adjust_for_weekend(self, day_cl, birthday: datetime) -> datetime:
+    def adjust_for_weekend(self, birthday):
         if birthday.weekday() >= 5:
-            return day_cl.find_next_weekday(birthday, 0)
+            return self.find_next_weekday(birthday, 0)
         return birthday
 
-    def get_upcoming_birthdays(self, days: int = 7):
-        dates = self.data[str, list[str]] = {}
-        today = datetime.today()
+    def get_upcoming_birthdays(self, users, days=7):
+        upcoming_birthdays = []
+        today = date.today()
 
-        for name, record in self.data.items():
-            if record.birthday:
-                # Birthday this year.
-                reality = record.birthday.value.replace(today.year)
+        for user in users:
+            birthday_this_year = user["birthday"].replace(year=today.year)
+            if birthday_this_year < today:
+                birthday_this_year = self.adjust_for_weekend(user["birthday"].replace(year=today.year + 1))
+            if 0 <= (birthday_this_year - today).days <= 7:
+                birthday_this_year = self.adjust_for_weekend(birthday_this_year)
 
-                if reality < today:
-                    reality = reality.replace(today.year + 1)
-
-                if 0 <= (reality - today).days <= days:
-                    # Birthday date.
-                    event = self.date_to_string(self.adjust_for_weekend(reality))
-
-                    if event not in dates:
-                        dates[event] = []
-                    dates[event].append(name)
-        return dates
+                congratulation_date_str = self.date_to_string(birthday_this_year)
+                upcoming_birthdays.append({"name": user["name"], "congratulation_date": congratulation_date_str})
+        return upcoming_birthdays
 
     def __str__(self):
         return f"Contacts book: name: {'; '.join(p for p in self.data)}"
 
 
-def main():
-    book = AddressBook()
-    print("Welcome to the assistant bot!")
-    while True:
-        command, *args = parse_input(input("Enter a command: "))
-
-        match command:
-            case 'hello':
-                print('How can I help you?')
-            case 'add':
-                print(add_contact(args, book))
-            case 'change':
-                print(change_contact(args, book))
-            case 'phone':
-                print(show_phone(args, book))
-            case 'all':
-                print(show_all(book))
-            case 'add-birthday':
-                print(add_birthday(args, book))
-            case 'show-birthday':
-                print(show_birthday(args, book))
-            case 'birthdays':
-                print(birthdays(book))
-            case _ if command in ['close', 'exit']:
-                print('Good bye!')
-                break
-            case _:
-                print('Invalid command.')
-
-
-def input_error(func: Callable):
+def input_error(func):
     def inner(*args, **kwargs):
         try:
             return func(*args, **kwargs)
-        except Exception:
-            return 'Something went wrong.'
+        except ValueError:
+            return "Give me name and phone please."
+        except IndexError:
+            return "Give me name and phone please."
+        except KeyError:
+            return "Specify the correct search parameter"
+    return inner
+
+
+@input_error
+def main():
+    book = AddressBook()
+    print("Welcome to the assistant bot Fox!")
+    while True:
+
+        user_input = input("Enter a command: ")
+        command, *args = parse_input(user_input)
+
+        if command in ["close", "exit"]:
+            print("Good bye!")
+            break
+
+        elif "hello" == command:
+            print("How can I help you?")
+        elif "add" == command:
+            print(add_contact(*args, book))
+        elif "change" == command:
+            print(change_contact(*args, book))
+        elif "phone" == command:
+            print(show_phone(*args, book))
+        elif "all" == command:
+            print(show_all(), book)
+        elif "add-birthday" == command:
+            print(add_birthday(args, book))
+        elif "show-birthday" == command:
+            print(show_birthday(args, book))
+        elif "birthdays" == command:
+            print(birthdays(book))
+        else:
+            print("Invalid command.")
 
 
 @input_error
@@ -221,3 +230,4 @@ def birthdays(book: AddressBook):
 if __name__ == "__main__":
     contact = {}
     main()
+
