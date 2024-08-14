@@ -57,7 +57,7 @@ class Record:
     def add_phone(self, phone):
         self.phones.append(Phone(phone))
 
-    def add_birthday(self, birthday):
+    def add_birthday(self, birthday: str):
         self.birthday = Birthday(birthday)
 
     def remove_phone(self, phone):
@@ -144,8 +144,7 @@ def main():
     print("Welcome to the assistant bot Fox!")
     while True:
 
-        user_input = input("Enter a command: ")
-        command, *args = parse_input(user_input)
+        command, *args = parse_input(input("Enter a command: "))
 
         if command in ["close", "exit"]:
             print("Good bye!")
@@ -154,7 +153,7 @@ def main():
         elif "hello" == command:
             print("How can I help you?")
         elif "add" == command:
-            print(add_contact(*args, book))
+            print(add_contact(*args))
         elif "change" == command:
             print(change_contact(*args, book))
         elif "phone" == command:
@@ -179,16 +178,22 @@ def parse_input(user_input):
 
 
 @input_error
-def add_contact(*add):
-    if add[0] in contact:
-        return "The contact already exists"
-    else:
-        contact[add[0]] = add[1]
-        return "Contact added."
+def add_contact(args, book: AddressBook):
+    name, phone, *_ = args
+    record = book.find(name)
+    message = "Contact updated."
+    if record is None:
+        record = Record(name)
+        book.add_record(record)
+        message = "Contact added."
+    if phone:
+        record.add_phone(phone)
+    return message
 
 
 @input_error
-def change_contact(*change):
+def change_contact(args):
+    change, *_ = args
     if change[0] in contact:
         contact[change[0]] = change[1]
         return "Contact updated."
@@ -196,9 +201,11 @@ def change_contact(*change):
         return "Contact not found"
 
 
-def show_phone(*phone):
-    if phone[0] in contact:
-        return contact[phone[0]]
+def show_phone(args, book: AddressBook):
+    name, phone, *_ = args
+    record = book.find(name)
+    if record in contact:
+        return contact[record]
     else:
         return "Contact not found"
 
@@ -211,7 +218,7 @@ def show_all():
 
 
 @input_error
-def add_birthday(args, book):
+def add_birthday(args, book: AddressBook):
     name, birthday, *_ = args
     book.find(name).add_birthday(birthday)
     return 'Birthday added.'
