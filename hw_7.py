@@ -41,7 +41,7 @@ class Record:
     def __init__(self, name: str):
         self.name = Name(name)
         self.phones = []
-        self.birthday = None
+        self.birthday = []
 
     def add_phone(self, phone):
         self.phones.append(Phone(phone))
@@ -96,22 +96,26 @@ class AddressBook(UserDict):
             return self.find_next_weekday(birthday, 0)
         return birthday
 
-    def get_upcoming_birthdays(self, days=7):
-        upcoming_birthdays = []
+    def get_upcoming_birthdays(self):
+        result_date = []
         today = datetime.today()
 
         for name, record in self.data.items():
             if record.birthday:
-                birthday_this_year = record.birthday.value.replace(year=today.year)
-                if birthday_this_year < today:
-                    birthday_this_year = record.birthday.replace(year=today.year + 1)
-                if 0 <= (birthday_this_year - today).days <= 7:
-                    congratulation = self.date_to_string(self.adjust_for_weekend(birthday_this_year))
+                # Birthday this year.
+                real = record.birthday.value.replace(year=today.year)
 
-                    congratulation_date_str = date_to_string(congratulation)
-                    upcoming_birthdays.append({"name": record.birthday["name"],
-                                               "congratulation_date": congratulation_date_str})
-                return upcoming_birthdays
+                if real < today:
+                    real = real.replace(year=today.year + 1)
+
+                if 0 <= (real - today).days <= 7:
+                    # Congratulation date.
+                    event = self.date_to_string(self.adjust_for_weekend(real))
+
+                    result_date.append({"name": name, "congratulation_date": event})
+        if len(result_date) == 0:
+            return 'There are no birthdays in the next seven days!'
+        return result_date
 
     def __str__(self):
         return f"Contacts book: name: {'; '.join(p for p in self.data)}"
@@ -127,10 +131,10 @@ def input_error(func):
             return "Give me name and phone please."
         except KeyError:
             return "Specify the correct search parameter"
-        except AttributeError:
-            return 'Object has no attribute'
-#        except TypeError:
-#            return 'Incorrect date format needs "01.01.2000"'
+#        except AttributeError:
+#           return 'Object has no attribute'
+        except TypeError:
+            return 'Incorrect date format needs "01.01.2000"'
     return inner
 
 
@@ -161,7 +165,7 @@ def main():
         elif "show-birthday" == command:
             print(show_birthday(args, book))
         elif "birthdays" == command:
-            print(*birthdays(book))
+            print(birthdays(book))
         else:
             print("Invalid command.")
 
@@ -222,7 +226,7 @@ def show_birthday(args, book: AddressBook):
 
 @input_error
 def birthdays(book: AddressBook):
-    return {book.get_upcoming_birthdays(book.find(name).birthday) for name in book}
+    return book.get_upcoming_birthdays()
 
 
 if __name__ == "__main__":
