@@ -83,8 +83,7 @@ class AddressBook(UserDict):
     def date_to_string(self, date):
         return date.strftime(Birthday.FORMAT)
 
-    @staticmethod
-    def find_next_weekday(start_date: datetime, weekday) -> datetime:
+    def find_next_weekday(self, start_date, weekday) -> datetime:
         days_ahead = weekday - start_date.weekday()
 
         if days_ahead <= 0:
@@ -92,7 +91,6 @@ class AddressBook(UserDict):
 
         return start_date + timedelta(days=days_ahead)
 
-    @classmethod
     def adjust_for_weekend(self, birthday):
         if birthday.weekday() >= 5:
             return self.find_next_weekday(birthday, 0)
@@ -157,7 +155,7 @@ def main():
         elif "phone" == command:
             print(show_phone(args, book))
         elif "all" == command:
-            print(show_all(book))
+            print(*show_all(book))
         elif "add-birthday" == command:
             print(add_birthday(args, book))
         elif "show-birthday" == command:
@@ -206,7 +204,7 @@ def show_phone(args, book: AddressBook):
 
 @input_error
 def show_all(book: AddressBook):
-    return {name: record.phones[0].value for name, record in book.data.items()}
+    return {book.find(name) for name in book}
 
 
 @input_error
