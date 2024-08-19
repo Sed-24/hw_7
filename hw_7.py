@@ -41,7 +41,7 @@ class Record:
     def __init__(self, name: str):
         self.name = Name(name)
         self.phones = []
-        self.birthday = []
+        self.birthday = None
 
     def add_phone(self, phone):
         self.phones.append(Phone(phone))
@@ -131,8 +131,8 @@ def input_error(func):
             return "Give me name and phone please."
         except KeyError:
             return "Specify the correct search parameter"
-#        except AttributeError:
-#           return 'Object has no attribute'
+        except AttributeError:
+            return 'No contact found with this name.'
         except TypeError:
             return 'Incorrect date format needs "01.01.2000"'
     return inner
