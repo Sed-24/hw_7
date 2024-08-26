@@ -56,10 +56,10 @@ class Record:
 
     def edit_phone(self, old, new):
         for ph in self.phones:
-            if ph != new:
+            if ph.value == old:
                 self.phones[self.phones.index(ph)] = Phone(new)
                 return
-            return self.phones[old]
+        return
 
     def find_phone(self, phone):
         for ph in self.phones:
